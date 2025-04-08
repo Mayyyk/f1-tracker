@@ -1,0 +1,27 @@
+edycja
+
+ Wyszukiwanie po nazwie/torze
+
+ Paginacja listy (np. 10 wyścigów na stronę)
+
+ Pobieranie temperatury z OpenWeather dla lokalizacji toru i daty wyścigu
+
+logowanie google
+
+NA ANGIELSKI
+
+- ulubiony (unique identifier)
+
+
+
+ Komponent: RaceList – lista wyścigów z paginacją
+
+ Komponent: RaceForm – dodawanie/edycja wyścigu
+
+ Komponent: RaceDetails (opcjonalnie)
+
+ Komponent: SearchBar – filtrowanie listy
+
+ Komponent: SortSelect – sortowanie
+
+ Komponent: Pagination – nawigacja po stronach
