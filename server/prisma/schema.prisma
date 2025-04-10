@@ -22,4 +22,6 @@ model Race {
   wasRain     Boolean  @default(false) // domyślnie nie padało
   temperature Float?
   comment     String?   
+  isFavorite Boolean @default(false)
+
 }

@@ -1,16 +1,25 @@
-edycja
-
- Wyszukiwanie po nazwie/torze
-
- Paginacja listy (np. 10 wyścigów na stronę)
-
- Pobieranie temperatury z OpenWeather dla lokalizacji toru i daty wyścigu
+Pobieranie temperatury z OpenWeather dla lokalizacji toru i daty wyścigu
 
 logowanie google
 
-NA ANGIELSKI
+Security F1 track
 
-- ulubiony (unique identifier)
+testy
+
+ulubiony (unique identifier)
+
+wygląd frontend
+
+index.js - kom + angl
+
+czy wszystkie wyścigi wyświetlają się prawidłowo? dla niektórych nie ma czasu
+
+linki do wiki 
+
+modularyzacja
+
+plany rozbudowy
+
 
 
 
