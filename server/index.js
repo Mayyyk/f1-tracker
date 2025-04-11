@@ -3,6 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import raceRoutes from "./routes/races.js"
 import dotenv from 'dotenv-flow';
+import prisma from "./prisma/client.js";
 dotenv.config();
 
 const app = express();
@@ -33,7 +34,16 @@ if (process.env.NODE_ENV === "production") {
 }
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
 
+async function init() {
+  await prisma.$connect();
+  await prisma.$executeRaw`SELECT 1`; // quick test connection
+  console.log("Prisma connected");
+
+  // start server AFTER DB is ready
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
+
+init();
