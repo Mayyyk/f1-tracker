@@ -154,4 +154,5 @@ https://miro.com/app/board/uXjVIDro7y4=/?share_link_id=593259922903
 ## 📬 Contact
 
 Built with ❤️ by @Mayyyk
+Email: michalmidor@student.agh.edu.pl
 
