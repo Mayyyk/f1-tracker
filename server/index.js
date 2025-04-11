@@ -13,8 +13,8 @@ app.use(cors())
 app.use(express.json())
 
 app.post("/api/save-race", async (req, res) => { //saving new race
-    console.log("▶️ Otrzymano żądanie POST /api/save-races");
-    console.log("Dane:", req.body);
+    console.log("▶️ Received query POST /api/save-races");
+    console.log("Data:", req.body);
   
     try {
       const race = await prisma.race.create({
@@ -30,11 +30,11 @@ app.post("/api/save-race", async (req, res) => { //saving new race
         }
       });
   
-      console.log("✅ Zapisano do bazy:", race.id);
+      console.log("Saved to Database:", race.id);
       res.status(201).json(race);
     } catch (err) {
-      console.error("❌ Błąd zapisu:", err);
-      res.status(500).json({ error: "Błąd podczas zapisu do bazy" });
+      console.error("Error while saving to database:", err);
+      res.status(500).json({ error: "Error while saving to database." });
     }
   });
   
@@ -48,14 +48,14 @@ app.get('/api/races', async (req, res) => { //getting alle races from the db
         })
         res.json(races)
     } catch(err) {
-        console.error('❌ Błąd pobierania danych z bazy:', err);
-        res.status(500).json({ error: 'Nie udało się pobrać wyścigów' });
+        console.error('Error while fetching data from database:', err);
+        res.status(500).json({ error: 'Failed to load races.' });
     }
 })
 
 
 app.post("/api/import-races", async (req, res) => {
-    const season = req.body.season || '2023' // post pozwala na większe dostosowanie tego, co wysyłamy w zapytaniu do api
+    const season = req.body.season || '2023' // post allows for more flexibility on the params given to the API
     try {
         const response = await fetch('https://ergast.com/api/f1/2023.json')
         const data = await response.json()
@@ -68,27 +68,27 @@ app.post("/api/import-races", async (req, res) => {
             circuit: r.Circuit.circuitName,
             wasRain: r.wasRain,
             comment: r.comment,
-            temperature: null   // w przyszłości z OpenWeather
+            temperature: null   //  OpenWeather?
           }));
           res.json(races)
     } catch(err) {
-        console.log("Błąd pobierania API. ", err)
-        res.status(500).json({error:"Błąd importowania wyścigów"})
+        console.log("Error loading data from API: ", err)
+        res.status(500).json({error:"Failed to import races from api"})
     }
 })
 
-app.delete('/api/races/:id/delete', async (req, res) => { //deleting a race by id
+app.delete('/api/races/:id/delete', async (req, res) => { // deleting a race by id
     const {id} = req.params
     console.log(req.params)
     try {
         await prisma.race.delete({
             where: {id}
         })
-        console.log('usunięto wyścig')
-        res.status(200).json({message:`Usunięto wyścig: ${id}`})
+        console.log('race deleted')
+        res.status(200).json({message:`Race deleted: ${id}`})
     } catch(err){
-        console.log("Błąd usuwania: ", err)
-        res.status(500).json({message:`Nie udało się usunąć wyścigu: ${id}.`})
+        console.log("Error while deleting this race: ", err)
+        res.status(500).json({message:`Failed to delete race #${id}.`})
     }
 })
 
@@ -106,8 +106,8 @@ app.put('/api/races/:id/edit', async (req, res) => { //editing a race by it
         })
         res.json(updated)
     } catch(err) {
-        console.log("Błąd edycji", err)
-        res.status(500).json({error: `Nie udało się edytować wyścigu: ${id}.`})
+        console.log("Error while editing: ", err)
+        res.status(500).json({error: `Failed to edit race #${id}.`})
       }
 })
 
@@ -127,8 +127,8 @@ app.put('/api/races/:id/favorite', async (req, res) => {
   
       res.json(updated);
     } catch (err) {
-      console.error('❌ Błąd ustawiania ulubionego:', err);
-      res.status(500).json({ error: 'Nie udało się ustawić ulubionego.' });
+      console.error('Error setting favorite race:', err);
+      res.status(500).json({ error: 'Failed to set a favorite race.' });
     }
   });
   
