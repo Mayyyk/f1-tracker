@@ -43,18 +43,17 @@ const RaceForm = ({
           </p>
         )}
 
-        <label>
-          Comment:
-          {isSaved ? (
-            <p style={{ color: "#ccc" }}>{race.comment || "No comment"}</p>
-          ) : (
-            <input
-              type="text"
-              value={editData[race.id]?.comment || ""}
-              onChange={(e) => updateField(race.id, "comment", e.target.value)}
-            />
-          )}
-        </label>
+        <label>Comment:</label>
+        <input
+          type="text"
+          value={editData[race.id]?.comment || ""}
+          onChange={(e) => updateField(race.id, "comment", e.target.value)}
+          placeholder="Add a comment"
+        />
+
+        <p style={{ marginTop: "5px", fontWeight: "bold", color: "#ccc" }}>
+          {race.comment ? race.comment : "No comment"}
+        </p>
 
         <div className="race-buttons">
           {isSaved && (
