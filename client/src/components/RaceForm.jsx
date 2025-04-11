@@ -16,7 +16,8 @@ const RaceForm = ({
   return (
     <div className="race-form">
       <h3 className="race-title">
-        <strong>{race.name}</strong> – {race.circuit} <span className="race-date">({race.date})</span>
+        <strong>{race.name}</strong> – {race.circuit}{" "}
+        <span className="race-date">({race.date})</span>
       </h3>
 
       <div className="race-details">
@@ -42,15 +43,17 @@ const RaceForm = ({
           </p>
         )}
 
-        <label className="form-label">
+        <label>
           Comment:
-          <input
-            type="text"
-            className="form-input"
-            value={data.comment ?? ""}
-            onChange={(e) => updateField(race.id, "comment", e.target.value)}
-            placeholder="Your note here..."
-          />
+          {isSaved ? (
+            <p style={{ color: "#ccc" }}>{race.comment || "No comment"}</p>
+          ) : (
+            <input
+              type="text"
+              value={editData[race.id]?.comment || ""}
+              onChange={(e) => updateField(race.id, "comment", e.target.value)}
+            />
+          )}
         </label>
 
         <div className="race-buttons">

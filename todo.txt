@@ -1,5 +1,3 @@
-deploy i domena (serv, config) + środowiskowe
-
 diagramy + last check
 
 plany rozbudowy - logowanie google, OpenWeather

@@ -46,4 +46,6 @@ async function init() {
   });
 }
 
+console.log("Active DB URL:", process.env.DATABASE_URL);
+
 init();
