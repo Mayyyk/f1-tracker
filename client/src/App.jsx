@@ -1,6 +1,5 @@
 import React from "react";
 import { useState, useEffect } from "react";
-import { API_URL } from "./config";
 import {
   fetchImportedRaces,
   fetchSavedRaces,
