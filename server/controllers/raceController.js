@@ -14,7 +14,7 @@ export const importRacesFromApi = async (req, res) => {
   }
 };
 
-export const getAllRaces = async (req, res) => {
+export const getSavedRaces = async (req, res) => {
   try {
     const races = await prisma.race.findMany({
       orderBy: {

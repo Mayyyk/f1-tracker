@@ -1,14 +1,27 @@
 import React from "react";
 import { useState, useEffect } from "react";
 import { API_URL } from "./config";
-
+import {
+  fetchImportedRaces,
+  fetchSavedRaces,
+  saveRace,
+  editRace,
+  toggleFavoriteRace,
+  deleteRace,
+} from "./api/raceApi.js";
+import SavedRaces from "./pages/SavedRaces.jsx";
+import ImportRaces from "./pages/ImportedRaces.jsx";
+import { paginateRaces } from "./utils/pagination.js";
+import { sortRaces } from "./utils/sort.js";
 
 const App = () => {
+  // ------ STATE SETUP SECTION -------
+
   const [importedRaces, setImportedRaces] = useState([]);
   const [loading, setLoading] = useState(false);
   const [season, setSeason] = useState("2023");
   const [savedRaces, setSavedRaces] = useState([]);
-  const [editData, setEditData] = useState({});
+  const [editData, setEditData] = useState({}); // storing temporary local data
   const [searchTerm, setSearchTerm] = useState("");
   const [itemsPerPage, setItemsPerPage] = useState(5);
   const [currentPage, setCurrentPage] = useState(1);
@@ -17,104 +30,107 @@ const App = () => {
 
   const savedIds = new Set(savedRaces.map((r) => r.id)); // make a set of ID's of races saved in DB
 
-  let filteredApiRaces = [];
+  const seasons = [
+    2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015,
+    2014, 2013, 2012, 2011, 2010, 2009, 2008, 2007, 2006, 2005,
+    2004, 2003, 2002, 2001, 2000, 1999, 1998, 1997, 1996, 1995,
+    1994, 1993, 1992, 1991, 1990, 1989, 1988, 1987, 1986, 1985,
+    1984, 1983, 1982, 1981, 1980, 1979, 1978, 1977, 1976, 1975,
+    1974, 1973, 1972, 1971, 1970, 1969, 1968, 1967, 1966, 1965,
+    1964, 1963, 1962, 1961, 1960, 1959, 1958, 1957, 1956, 1955,
+    1954, 1953, 1952, 1951, 1950
+  ];
+ 
 
-  const fetchRaces = async (selectedSeason) => {
-    // fetching races from Ergast API
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_URL}/api/races/import`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ season: selectedSeason }),
-      });
-      const data = await res.json();
-      setImportedRaces(data);
-    } catch (err) {
-      console.error("Error while fetching data from API:", err);
-      setImportedRaces([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // ------ PAGE LOAD SECTION -------
 
-  const deleteRace = async (id) => {
-    // delete race from DB by ID
-    if (!window.confirm("Are you sure to delete this race?")) return;
+  useEffect(() => {
+    // after refresh always go back to the first page to avoid undefined behavior
+    setCurrentPage(1);
+  }, [activeTab]);
 
-    try {
-      const res = await fetch(`${API_URL}/api/races/${id}/delete`, {
-        method: "DELETE",
-      });
-      if (res.ok) {
-        alert("Race deleted.");
-        setSavedRaces((prev) => prev.filter((r) => r.id !== id));
-      } else {
-        alert("Error while deleting this race. Race was not deleted.");
+  // Fetch immediately after page load
+  useEffect(() => {
+    const loadRaces = async () => {
+      setLoading(true);
+      try {
+        const [imported, saved] = await Promise.all([
+          fetchImportedRaces(season),
+          fetchSavedRaces(),
+        ]);
+        setImportedRaces(imported);
+        setSavedRaces(saved);
+      } catch (err) {
+        console.error("Error fetching races: ", err);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error("Connection error while deleting this race.", err);
-      alert("Error while deleting this race. Race was not deleted.");
-    }
-  };
-
-  const toggleFavorite = async (id, isCurrentlyFavorite) => {
-    try {
-      console.log("isCurrentlyFavorite:", isCurrentlyFavorite);
-
-      const res = await fetch(`${API_URL}/api/races/${id}/favorite`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ remove: isCurrentlyFavorite }),
-      });
-
-      if (res.ok) {
-        setSavedRaces((prev) =>
-          prev.map((r) => ({
-            ...r,
-            isFavorite: isCurrentlyFavorite ? false : r.id === id,
-          }))
-        );
-      }
-    } catch (err) {
-      console.error("Error while setting/deleting favorite race:", err);
-    }
-  };
-
-  const renderRaceForm = (race, isSaved) => {
-    // the form for each race is rendered individually
-    const data = editData[race.id] || {
-      // check if it contains data edited by the user in the current moment, in case it was already edited before saving
-      comment: race.comment || "", // if nothing is edited, data is fetched from the original race (from import), or from the DB (if it is saved in DB)
-      wasRain: race.wasRain || false,
     };
+    loadRaces();
+  }, [season]); // it reacts to changes in the season selection
 
-    const updateField = (field, value) => {
-      // changing the value of wasRain or comment for a given race
-      setEditData((prev) => ({
-        ...prev,
-        [race.id]: {
-          //using Id as a key
-          ...prev[race.id],
-          [field]: value,
-        },
-      }));
-    };
+  // ------ DISPLAY SECTION --------
+  // Filter -> sort -> paginate
 
-    const handleSave = async () => {
-      if (
-        !race.id ||
-        !race.name ||
-        !race.date ||
-        !race.round ||
-        !race.circuit
-      ) {
-        alert("Missing data. Cannot save race.");
-        return;
-      }
+  const filteredSavedRaces = savedRaces.filter(
+    (
+      race // filters saved races by name
+    ) => race.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
+  const filteredApiRaces = importedRaces
+    .filter((race) => !savedIds.has(race.id))
+    .filter((race) =>
+      race.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+  const sortedSavedRaces = [...filteredSavedRaces].sort((a, b) =>
+    sortRaces(a, b, sortBy)
+  );
+
+  const sortedApiRaces = [...filteredApiRaces].sort((a, b) =>
+    sortRaces(a, b, sortBy)
+  );
+
+  const paginatedSavedRaces = paginateRaces(
+    sortedSavedRaces,
+    currentPage,
+    itemsPerPage
+  );
+
+  const paginatedApiRaces = paginateRaces(
+    sortedApiRaces,
+    currentPage,
+    itemsPerPage
+  );
+
+  const totalPages = Math.ceil(
+    // counts total pages of pagination based on which tab is active (imported or saved races)
+    (activeTab === "saved"
+      ? filteredSavedRaces.length
+      : filteredApiRaces.length) / Math.max(itemsPerPage, 1) // first argument must be in brackets
+  );
+
+  // ------ FUNCTIONAL SECTION --------
+
+  const updateField = (id, field, value) => {
+    // changing the value of wasRain or comment for a given race
+    setEditData((prev) => ({
+      ...prev,
+      [id]: {
+        //using Id as a key
+        ...prev[id],
+        [field]: value,
+      },
+    }));
+  };
+
+  const handleSave = async (race, isSaved) => {
+    if (!race.id || !race.name || !race.date || !race.round || !race.circuit) {
+      alert("Missing data. Cannot save race.");
+      return;
+    }
+    try {
       const body = {
         id: race.id,
         name: race.name,
@@ -127,13 +143,9 @@ const App = () => {
       };
 
       if (isSaved) {
-        const res = await fetch(`${API_URL}/api/races/${race.id}/edit`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            wasRain: body.wasRain,
-            comment: body.comment,
-          }),
+        const res = await editRace(race.id, {
+          wasRain: body.wasRain,
+          comment: body.comment,
         });
 
         if (res.ok) {
@@ -146,254 +158,156 @@ const App = () => {
         }
       } else {
         // saving a new race
-        const res = await fetch(`${API_URL}/api/races/save`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
+        const res = await saveRace(body);
 
         if (res.ok) {
-          alert("Zapisano do bazy");
+          alert("Saved to DataBase");
           setSavedRaces((prev) => [...prev, body]);
         }
       }
-    };
-
-    return (
-      // returns a form for each race
-      <div>
-        <strong>{race.name}</strong> – {race.circuit} ({race.date})
-        <div>
-          <label>
-            Was it rainy?
-            <select
-              value={data.wasRain ? "yes" : "no"}
-              onChange={(e) => updateField("wasRain", e.target.value === "yes")}
-            >
-              <option value="no">No</option>
-              <option value="yes">Yes</option>
-            </select>
-          </label>
-          <br />
-          {race.wikiUrl && (
-            <p>
-              <a href={race.wikiUrl} target="_blank" rel="noopener noreferrer">
-                🌐 See more details on Wikipedia
-              </a>
-            </p>
-          )}
-
-          <label>
-            Comment:
-            <input
-              type="text"
-              value={data.comment !== undefined ? data.comment : ""}
-              onChange={(e) => updateField("comment", e.target.value)}
-            />
-          </label>
-          {isSaved && (
-            <button onClick={() => toggleFavorite(race.id, race.isFavorite)}>
-              {race.isFavorite ? "Delete from favorite" : "Set as favorite"}
-            </button>
-          )}
-          <br />
-          <button onClick={handleSave}>
-            {isSaved ? "Save changes" : "Save to DataBase"}
-          </button>
-        </div>
-      </div>
-    );
-  };
-
-  useEffect(() => {
-    // after refresh always go back to the first page to avoid undefined behavior
-    setCurrentPage(1);
-  }, [activeTab]);
-
-  // Fetch immediately after page load
-  useEffect(() => {
-    const fetchSavedRaces = async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/races`);
-        const data = await res.json();
-      
-        setSavedRaces(data);
-      } catch (err) {
-        console.error("Error while fetching saved races: ", err);
-      }
-    };
-    fetchRaces(season);
-    fetchSavedRaces();
-  }, [season]); // it reacts to changes in the season selection
-
-  // ------ DISPLAY SECTION --------
-  // Filter -> sort -> paginate
-
-  const filteredSavedRaces = savedRaces.filter(
-    (
-      race // filters saved races by name
-    ) => race.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-
-  if (Array.isArray(importedRaces)) {
-    filteredApiRaces = importedRaces
-      .filter((race) => !savedIds.has(race.id))
-      .filter((race) =>
-        race.name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-  }
-  
-
-  const paginateRaces = (data, page = currentPage, limit = itemsPerPage) =>
-    data.slice((page - 1) * limit, page * limit);
-
-  const sortRaces = (a, b) => {
-    if (sortBy === "date") {
-      return new Date(a.date) - new Date(b.date);
-    } else if (sortBy === "name") {
-      return a.name.localeCompare(b.name);
+    } catch (err) {
+      console.error("Save error:", err);
     }
-    return 0;
   };
 
-  const sortedSavedRaces = [...filteredSavedRaces].sort(sortRaces);
-  const sortedApiRaces = [...filteredApiRaces].sort(sortRaces);
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure to delete this race?")) return;
+    const res = await deleteRace(id);
+    if (res.ok) {
+      setSavedRaces((prev) => prev.filter((r) => r.id !== id));
+    }
+  };
 
-  const paginatedApiRaces = paginateRaces(sortedApiRaces);
+  const handleToggleFavorite = async (id, isCurrentlyFavorite) => {
+    const res = await toggleFavoriteRace(id, isCurrentlyFavorite);
+    if (res.ok) {
+      setSavedRaces((prev) =>
+        prev.map((r) => ({
+          ...r,
+          isFavorite: isCurrentlyFavorite ? false : r.id === id,
+        }))
+      );
+    }
+  };
 
-  const paginatedSavedRaces = paginateRaces(sortedSavedRaces);
-
-  const totalPages = Math.ceil(
-    // counts total pages of pagination based on which tab is active (imported or saved races)
-    (activeTab === "saved"
-      ? filteredSavedRaces.length
-      : filteredApiRaces.length) / Math.max(itemsPerPage, 1) // first argument must be in brackets
-  );
+  // ------ RENDER SECTION --------
 
   return (
-    <main style={{ padding: "2rem", fontFamily: "sans-serif" }}>
-      <h1>F1 Tracker 🏁</h1>
-
-      <div style={{ marginBottom: "1rem" }}>
+    <main className="app-container">
+      <h1 className="app-title">F1 Tracker 🏁</h1>
+  
+      {/* Tab Buttons */}
+      <div className="tab-buttons">
         <button
+          className={activeTab === "saved" ? "active" : ""}
           onClick={() => setActiveTab("saved")}
-          style={{
-            marginRight: "0.5rem",
-            backgroundColor: activeTab === "saved" ? "#ccc" : "#eee",
-          }}
         >
           Saved Races
         </button>
         <button
-          onClick={() => {
-            setActiveTab("import");
-          }}
-          style={{
-            backgroundColor: activeTab === "import" ? "#ccc" : "#eee",
-          }}
+          className={activeTab === "import" ? "active" : ""}
+          onClick={() => setActiveTab("import")}
         >
           Import Races from API
         </button>
       </div>
-
-      <input // for to find races by name
+  
+      {/* Search */}
+      <input
         type="text"
         placeholder="Find a race by name..."
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
-        style={{ margin: "1rem 0", padding: "0.5rem", width: "100%" }}
+        className="search-input"
       />
-
-      <label>
-        Sort by
-        <select
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value)}
-          style={{ marginLeft: "0.5rem" }}
-        >
-          <option value="date">Date</option>
-          <option value="name">Name</option>
-        </select>
-      </label>
-
-      {activeTab === "saved" && ( // react shortcut for conditional render
-        <>
-          <h2> Saved Races</h2>
-          <ul>
-            {paginatedSavedRaces.map((race) => (
-              <li key={race.id} style={{ marginBottom: "1rem" }}>
-                {renderRaceForm(race, true)}
-                <button onClick={() => deleteRace(race.id)}>Delete</button>
-              </li>
-            ))}
-          </ul>
-        </>
+  
+      {/* Sort By */}
+      <div className="sort-select">
+        <label>
+          Sort by
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+          >
+            <option value="date">Date</option>
+            <option value="name">Name</option>
+          </select>
+        </label>
+      </div>
+  
+      {/* SAVED RACES */}
+      {activeTab === "saved" && (
+        <SavedRaces
+          races={paginatedSavedRaces}
+          onDelete={handleDelete}
+          onSave={handleSave}
+          onToggleFavorite={handleToggleFavorite}
+          editData={editData}
+          updateField={updateField}
+        />
       )}
-
+  
+      {/* IMPORTED RACES */}
       {activeTab === "import" && (
         <>
-          <label>
-            Season:
-            <select
-              value={season}
-              onChange={(e) => setSeason(e.target.value)}
-              style={{ marginLeft: "0.5rem" }}
-            >
-              {[2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015].map(
-                (yr) => (
+          <div className="season-select">
+            <label>
+              Season:
+              <select
+                value={season}
+                onChange={(e) => setSeason(e.target.value)}
+              >
+                {seasons.map((yr) => (
                   <option key={yr} value={yr}>
                     {yr}
                   </option>
-                )
-              )}
-            </select>
-          </label>
-
-          {loading ? ( // handles showing imported races from API
+                ))}
+              </select>
+            </label>
+          </div>
+  
+          {loading ? (
             <p>Loading...</p>
           ) : importedRaces.length === 0 ? (
             <p>No races to show.</p>
           ) : (
-            <ul>
-              {paginatedApiRaces.map((race) => (
-                <li key={race.id} style={{ marginBottom: "1rem" }}>
-                  {renderRaceForm(race, false)}
-                </li>
-              ))}
-            </ul>
+            <ImportRaces
+              races={paginatedApiRaces}
+              onSave={handleSave}
+              editData={editData}
+              updateField={updateField}
+            />
           )}
         </>
       )}
-
-      {/* Pagination form */}
-      <label>
-        Races per page:
-        <select
-          value={itemsPerPage}
-          onChange={(e) => {
-            setItemsPerPage(e.target.value);
-            setCurrentPage(1);
-          }}
-          style={{ marginLeft: "0.5rem" }}
-        >
-          {[5, 10, 20, 50].map((count) => (
-            <option key={count} value={count}>
-              {count}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      <div style={{ marginTop: "1rem" }}>
+  
+      {/* Pagination */}
+      <div className="pagination">
+        <label>
+          Races per page:
+          <select
+            value={itemsPerPage}
+            onChange={(e) => {
+              setItemsPerPage(e.target.value);
+              setCurrentPage(1);
+            }}
+          >
+            {[5, 10, 20, 50].map((count) => (
+              <option key={count} value={count}>
+                {count}
+              </option>
+            ))}
+          </select>
+        </label>
+  
         <button
           disabled={currentPage === 1}
           onClick={() => setCurrentPage((p) => p - 1)}
         >
           ◀️ Previous
         </button>
-        <span style={{ margin: "0 1rem" }}>
-          Strona {currentPage} z {totalPages}
+        <span>
+          Page {currentPage} of {totalPages}
         </span>
         <button
           disabled={currentPage === totalPages}
@@ -404,6 +318,7 @@ const App = () => {
       </div>
     </main>
   );
+  
 };
 
 export default App;

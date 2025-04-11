@@ -6,8 +6,6 @@ import raceRoutes from "./routes/races.js"
 
 const app = express();
 
-const PORT = 5000;
-
 app.use(helmet());
 
 app.use(
@@ -24,6 +22,12 @@ app.use(
 app.use(express.json());
 
 app.use("/api/races", raceRoutes);
+
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
