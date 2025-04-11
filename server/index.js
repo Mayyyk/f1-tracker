@@ -1,10 +1,8 @@
 import express from "express";
 import cors from "cors";
-import fetch from "node-fetch";
-import { PrismaClient } from "@prisma/client";
 import helmet from "helmet";
+import raceRoutes from "./routes/races.js"
 
-const prisma = new PrismaClient();
 
 const app = express();
 
@@ -24,6 +22,8 @@ app.use(
   })
 );
 app.use(express.json());
+
+app.use("/api/races", raceRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);

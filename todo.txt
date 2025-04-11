@@ -1,14 +1,10 @@
-Pobieranie temperatury z OpenWeather dla lokalizacji toru i daty wyścigu
 
 wygląd frontend
 
 testy - czy wszystkie wyścigi wyświetlają się prawidłowo? dla niektórych nie ma czasu
 
+deploy i domena (serv, config) + środowiskowe
 
-modularyzacja
+plany rozbudowy - logowanie google, OpenWeather
 
-plany rozbudowy - logowanie google
-
-refractor
-
-deploy i domena (serv, config)
+PDF z nauczkami

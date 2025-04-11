@@ -2,6 +2,7 @@ import React from "react";
 import { useState, useEffect } from "react";
 import { API_URL } from "./config";
 
+
 const App = () => {
   const [importedRaces, setImportedRaces] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -16,11 +17,13 @@ const App = () => {
 
   const savedIds = new Set(savedRaces.map((r) => r.id)); // make a set of ID's of races saved in DB
 
+  let filteredApiRaces = [];
+
   const fetchRaces = async (selectedSeason) => {
     // fetching races from Ergast API
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/import-races`, {
+      const res = await fetch(`${API_URL}/api/races/import`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -143,7 +146,7 @@ const App = () => {
         }
       } else {
         // saving a new race
-        const res = await fetch(`${API_URL}/api/save-race`, {
+        const res = await fetch(`${API_URL}/api/races/save`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
@@ -213,7 +216,7 @@ const App = () => {
       try {
         const res = await fetch(`${API_URL}/api/races`);
         const data = await res.json();
-        console.log(data);
+      
         setSavedRaces(data);
       } catch (err) {
         console.error("Error while fetching saved races: ", err);
@@ -232,11 +235,15 @@ const App = () => {
     ) => race.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const filteredApiRaces = importedRaces // filters imported races by name, used in
-    .filter((race) => !savedIds.has(race.id))
-    .filter((race) =>
-      race.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+
+  if (Array.isArray(importedRaces)) {
+    filteredApiRaces = importedRaces
+      .filter((race) => !savedIds.has(race.id))
+      .filter((race) =>
+        race.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+  }
+  
 
   const paginateRaces = (data, page = currentPage, limit = itemsPerPage) =>
     data.slice((page - 1) * limit, page * limit);
