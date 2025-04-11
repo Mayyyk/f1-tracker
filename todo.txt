@@ -1,36 +1,14 @@
 Pobieranie temperatury z OpenWeather dla lokalizacji toru i daty wyścigu
 
-logowanie google
-
-Security F1 track
-
-testy
-
-ulubiony (unique identifier)
-
 wygląd frontend
 
-index.js - kom + angl
+testy - czy wszystkie wyścigi wyświetlają się prawidłowo? dla niektórych nie ma czasu
 
-czy wszystkie wyścigi wyświetlają się prawidłowo? dla niektórych nie ma czasu
-
-linki do wiki 
 
 modularyzacja
 
-plany rozbudowy
+plany rozbudowy - logowanie google
 
+refractor
 
-
-
- Komponent: RaceList – lista wyścigów z paginacją
-
- Komponent: RaceForm – dodawanie/edycja wyścigu
-
- Komponent: RaceDetails (opcjonalnie)
-
- Komponent: SearchBar – filtrowanie listy
-
- Komponent: SortSelect – sortowanie
-
- Komponent: Pagination – nawigacja po stronach
+deploy i domena (serv, config)

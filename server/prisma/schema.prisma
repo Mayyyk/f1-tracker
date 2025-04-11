@@ -23,5 +23,6 @@ model Race {
   temperature Float?
   comment     String?   
   isFavorite Boolean @default(false)
+  wikiUrl String?
 
 }

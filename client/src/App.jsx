@@ -1,4 +1,6 @@
+import React from "react";
 import { useState, useEffect } from "react";
+import { API_URL } from "./config";
 
 const App = () => {
   const [importedRaces, setImportedRaces] = useState([]);
@@ -10,13 +12,15 @@ const App = () => {
   const [itemsPerPage, setItemsPerPage] = useState(5);
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState("import");
+  const [sortBy, setSortBy] = useState("date"); // by default sort by date - set in backend
 
   const savedIds = new Set(savedRaces.map((r) => r.id)); // make a set of ID's of races saved in DB
 
-  const fetchRaces = async (selectedSeason) => { // fetching races from Ergast API
+  const fetchRaces = async (selectedSeason) => {
+    // fetching races from Ergast API
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/import-races`, {
+      const res = await fetch(`${API_URL}/api/import-races`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -33,45 +37,51 @@ const App = () => {
     }
   };
 
-   const deleteRace = async (id) => { // delete race from DB by ID
+  const deleteRace = async (id) => {
+    // delete race from DB by ID
     if (!window.confirm("Are you sure to delete this race?")) return;
 
     try {
-      const res = await fetch(`http://localhost:5000/api/races/${id}/delete`, {
+      const res = await fetch(`${API_URL}/api/races/${id}/delete`, {
         method: "DELETE",
       });
       if (res.ok) {
-        alert("✅ Race deleted.");
+        alert("Race deleted.");
         setSavedRaces((prev) => prev.filter((r) => r.id !== id));
       } else {
-        alert("❌ Error while deleting this race. Race was not deleted.");
+        alert("Error while deleting this race. Race was not deleted.");
       }
     } catch (err) {
-      console.error("❌ Connection error while deleting this race.", err);
-      alert("❌ Error while deleting this race. Race was not deleted.");
-    }
-  };
-  
-  const toggleFavorite = async (id, isCurrentlyFavorite) => {
-    try {
-      if(isCurrentlyFavorite) {
-        
-      }
-      const res = await fetch(`http://localhost:5000/api/races/${id}/favorite`, {
-        method: 'PUT'
-      });
-      if (res.ok) {
-        const updated = await res.json();
-        setSavedRaces(prev => // update local state so there is no need to wait for fetch from DB
-          prev.map(r => ({ ...r, isFavorite: r.id === id }))
-        );
-      }
-    } catch (err) {
-      console.error("❌ Error while setting favorite race:", err);
+      console.error("Connection error while deleting this race.", err);
+      alert("Error while deleting this race. Race was not deleted.");
     }
   };
 
-  const renderRaceForm = (race, isSaved) => { // the form for each race is rendered individually
+  const toggleFavorite = async (id, isCurrentlyFavorite) => {
+    try {
+      console.log("isCurrentlyFavorite:", isCurrentlyFavorite);
+
+      const res = await fetch(`${API_URL}/api/races/${id}/favorite`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ remove: isCurrentlyFavorite }),
+      });
+
+      if (res.ok) {
+        setSavedRaces((prev) =>
+          prev.map((r) => ({
+            ...r,
+            isFavorite: isCurrentlyFavorite ? false : r.id === id,
+          }))
+        );
+      }
+    } catch (err) {
+      console.error("Error while setting/deleting favorite race:", err);
+    }
+  };
+
+  const renderRaceForm = (race, isSaved) => {
+    // the form for each race is rendered individually
     const data = editData[race.id] || {
       // check if it contains data edited by the user in the current moment, in case it was already edited before saving
       comment: race.comment || "", // if nothing is edited, data is fetched from the original race (from import), or from the DB (if it is saved in DB)
@@ -90,48 +100,64 @@ const App = () => {
       }));
     };
 
-    const handleSave = async () => { // different save rules if the race already exists in DB or not
+    const handleSave = async () => {
+      if (
+        !race.id ||
+        !race.name ||
+        !race.date ||
+        !race.round ||
+        !race.circuit
+      ) {
+        alert("Missing data. Cannot save race.");
+        return;
+      }
+
       const body = {
-        ...race, // copying data from the given race
-        ...editData[race.id], // overwriting the copied data with new changes
+        id: race.id,
+        name: race.name,
+        date: race.date,
+        round: race.round,
+        circuit: race.circuit,
+        wasRain: editData[race.id]?.wasRain || false,
+        comment: editData[race.id]?.comment || "",
+        temperature: race.temperature ?? null,
       };
+
       if (isSaved) {
-        const res = await fetch(
-          `http://localhost:5000/api/races/${race.id}/edit`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              wasRain: body.wasRain,
-              comment: body.comment,
-            }),
-          }
-        );
+        const res = await fetch(`${API_URL}/api/races/${race.id}/edit`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            wasRain: body.wasRain,
+            comment: body.comment,
+          }),
+        });
 
         if (res.ok) {
-          alert("✅ Edit was successful.");
-          setSavedRaces( // also edit the local state so there is no need to wait for another fetch from DB
+          alert("Edit was successful.");
+          setSavedRaces(
+            // also edit the local state so there is no need to wait for another fetch from DB
             (prev) =>
               prev.map((r) => (r.id === race.id ? { ...r, ...body } : r)) // adding a new race at the end
           );
         }
-      } else { // saving a new race
-        const res = await fetch("http://localhost:5000/api/save-race", {
+      } else {
+        // saving a new race
+        const res = await fetch(`${API_URL}/api/save-race`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         });
 
         if (res.ok) {
-          alert("✅ Zapisano do bazy");
+          alert("Zapisano do bazy");
           setSavedRaces((prev) => [...prev, body]);
         }
       }
     };
 
-    
-
-    return ( // returns a form for each race
+    return (
+      // returns a form for each race
       <div>
         <strong>{race.name}</strong> – {race.circuit} ({race.date})
         <div>
@@ -146,17 +172,25 @@ const App = () => {
             </select>
           </label>
           <br />
+          {race.wikiUrl && (
+            <p>
+              <a href={race.wikiUrl} target="_blank" rel="noopener noreferrer">
+                🌐 See more details on Wikipedia
+              </a>
+            </p>
+          )}
+
           <label>
             Comment:
             <input
               type="text"
-              value={data.comment}
+              value={data.comment !== undefined ? data.comment : ""}
               onChange={(e) => updateField("comment", e.target.value)}
             />
           </label>
           {isSaved && (
-            <button onClick={() => toggleFavorite(race.id)}>
-                  {race.isFavorite ? '⭐ Favorite' : '☆ Set as favorite'}
+            <button onClick={() => toggleFavorite(race.id, race.isFavorite)}>
+              {race.isFavorite ? "Delete from favorite" : "Set as favorite"}
             </button>
           )}
           <br />
@@ -177,34 +211,51 @@ const App = () => {
   useEffect(() => {
     const fetchSavedRaces = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/races");
+        const res = await fetch(`${API_URL}/api/races`);
         const data = await res.json();
+        console.log(data);
         setSavedRaces(data);
       } catch (err) {
-        console.error("❌ Error while fetching saved races: ", err);
+        console.error("Error while fetching saved races: ", err);
       }
     };
     fetchRaces(season);
     fetchSavedRaces();
   }, [season]); // it reacts to changes in the season selection
 
-  const filteredSavedRaces = savedRaces.filter((race) => // filters saved races by name
-    race.name.toLowerCase().includes(searchTerm.toLowerCase())
+  // ------ DISPLAY SECTION --------
+  // Filter -> sort -> paginate
+
+  const filteredSavedRaces = savedRaces.filter(
+    (
+      race // filters saved races by name
+    ) => race.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const filteredApiRaces = importedRaces // filters imported races by name, used in 
+  const filteredApiRaces = importedRaces // filters imported races by name, used in
     .filter((race) => !savedIds.has(race.id))
     .filter((race) =>
       race.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const paginateRaces = (data, page = currentPage, limit = itemsPerPage) =>
-      data.slice((page - 1) * limit, page * limit);
-    
+  const paginateRaces = (data, page = currentPage, limit = itemsPerPage) =>
+    data.slice((page - 1) * limit, page * limit);
 
-  const paginatedApiRaces = paginateRaces(filteredApiRaces)
-  
-  const paginatedSavedRaces = paginateRaces(filteredSavedRaces)
+  const sortRaces = (a, b) => {
+    if (sortBy === "date") {
+      return new Date(a.date) - new Date(b.date);
+    } else if (sortBy === "name") {
+      return a.name.localeCompare(b.name);
+    }
+    return 0;
+  };
+
+  const sortedSavedRaces = [...filteredSavedRaces].sort(sortRaces);
+  const sortedApiRaces = [...filteredApiRaces].sort(sortRaces);
+
+  const paginatedApiRaces = paginateRaces(sortedApiRaces);
+
+  const paginatedSavedRaces = paginateRaces(sortedSavedRaces);
 
   const totalPages = Math.ceil(
     // counts total pages of pagination based on which tab is active (imported or saved races)
@@ -247,9 +298,21 @@ const App = () => {
         style={{ margin: "1rem 0", padding: "0.5rem", width: "100%" }}
       />
 
+      <label>
+        Sort by
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value)}
+          style={{ marginLeft: "0.5rem" }}
+        >
+          <option value="date">Date</option>
+          <option value="name">Name</option>
+        </select>
+      </label>
+
       {activeTab === "saved" && ( // react shortcut for conditional render
-        <> 
-          <h2> Saved Races</h2> 
+        <>
+          <h2> Saved Races</h2>
           <ul>
             {paginatedSavedRaces.map((race) => (
               <li key={race.id} style={{ marginBottom: "1rem" }}>
@@ -297,7 +360,7 @@ const App = () => {
       )}
 
       {/* Pagination form */}
-      <label> 
+      <label>
         Races per page:
         <select
           value={itemsPerPage}
