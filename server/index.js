@@ -10,19 +10,19 @@ const app = express();
 
 app.use(helmet());
 
-app.use(
-  cors({
-    origin: [
-      "http://localhost:3000",
-      "http://localhost:5173",
-      "http://localhost:8080",
-      "https://f1-tracker-rjrhafkn4-michals-projects-a0de64a1.vercel.app",
-      "https://f1-tracker-seven.vercel.app",
-      "https://f1-tracker-git-main-michals-projects-a0de64a1.vercel.app/"
-    ],
-    credentials: true,
-  })
-);
+// app.use(
+//   cors({
+//     origin: [
+//       "http://localhost:3000",
+//       "http://localhost:5173",
+//       "http://localhost:8080",
+//       "https://f1-tracker-rjrhafkn4-michals-projects-a0de64a1.vercel.app",
+//       "https://f1-tracker-seven.vercel.app",
+//       "https://f1-tracker-git-main-michals-projects-a0de64a1.vercel.app/"
+//     ],
+//     credentials: true,
+//   })
+// );
 app.use(express.json());
 
 app.use("/api/races", raceRoutes);
