@@ -15,7 +15,7 @@ app.use(
       "http://localhost:3000",
       "http://localhost:5173",
       "http://localhost:8080",
-      "https://twojadomena.pl",
+      "https://f1-tracker-rjrhafkn4-michals-projects-a0de64a1.vercel.app",
     ],
     credentials: true,
   })
