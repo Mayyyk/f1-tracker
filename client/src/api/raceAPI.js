@@ -1,4 +1,4 @@
-import { API_URL } from "../config";
+import { API_URL } from "../config.js";
 
 // Import races from external API (POST)
 export const fetchImportedRaces = async (season) => {
